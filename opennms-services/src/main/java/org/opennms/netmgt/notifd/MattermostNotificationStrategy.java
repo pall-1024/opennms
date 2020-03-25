@@ -41,14 +41,14 @@ import org.slf4j.LoggerFactory;
  * @version $Id: $
  */
 public class MattermostNotificationStrategy extends AbstractSlackCompatibleNotificationStrategy {
-    protected static final Logger LOG = LoggerFactory.getLogger(MattermostNotificationStrategy.class);
+	protected static final Logger LOG = LoggerFactory.getLogger(MattermostNotificationStrategy.class);
 	
     private static final String MM_URL_PROPERTY = "org.opennms.netmgt.notifd.mattermost.webhookURL";
     private static final String MM_USERNAME_PROPERTY = "org.opennms.netmgt.notifd.mattermost.username";
     private static final String MM_ICONURL_PROPERTY = "org.opennms.netmgt.notifd.mattermost.iconURL";
     private static final String MM_ICONEMOJI_PROPERTY = "org.opennms.netmgt.notifd.mattermost.iconEmoji";
     private static final String MM_CHANNEL_PROPERTY = "org.opennms.netmgt.notifd.mattermost.channel";
-  	private static final String MM_USE_SYSTEM_PROXY = "org.opennms.netmgt.notifd.mattermost.useSystemProxy";
+	private static final String MM_USE_SYSTEM_PROXY = "org.opennms.netmgt.notifd.mattermost.useSystemProxy";
     
     @Override
 	protected String formatWebhookErrorResponse(int statusCode, String contents) {
