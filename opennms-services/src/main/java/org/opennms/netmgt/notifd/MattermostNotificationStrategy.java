@@ -1,8 +1,8 @@
 /*******************************************************************************
  * This file is part of OpenNMS(R).
  *
- * Copyright (C) 2015-2016 The OpenNMS Group, Inc.
- * OpenNMS(R) is Copyright (C) 1999-2016 The OpenNMS Group, Inc.
+ * Copyright (C) 2015-2020 The OpenNMS Group, Inc.
+ * OpenNMS(R) is Copyright (C) 1999-2020 The OpenNMS Group, Inc.
  *
  * OpenNMS(R) is a registered trademark of The OpenNMS Group, Inc.
  *
@@ -41,85 +41,76 @@ import org.slf4j.LoggerFactory;
  * @version $Id: $
  */
 public class MattermostNotificationStrategy extends AbstractSlackCompatibleNotificationStrategy {
-	protected static final Logger LOG = LoggerFactory.getLogger(MattermostNotificationStrategy.class);
-	
+    protected static final Logger LOG = LoggerFactory.getLogger(MattermostNotificationStrategy.class);
+
     private static final String MM_URL_PROPERTY = "org.opennms.netmgt.notifd.mattermost.webhookURL";
     private static final String MM_USERNAME_PROPERTY = "org.opennms.netmgt.notifd.mattermost.username";
     private static final String MM_ICONURL_PROPERTY = "org.opennms.netmgt.notifd.mattermost.iconURL";
     private static final String MM_ICONEMOJI_PROPERTY = "org.opennms.netmgt.notifd.mattermost.iconEmoji";
     private static final String MM_CHANNEL_PROPERTY = "org.opennms.netmgt.notifd.mattermost.channel";
-	private static final String MM_USE_SYSTEM_PROXY = "org.opennms.netmgt.notifd.mattermost.useSystemProxy";
-    
+
     @Override
-	protected String formatWebhookErrorResponse(int statusCode, String contents) {
-    	final StringBuilder bldr = new StringBuilder("Response code: ");
-    	bldr.append(statusCode);
-    	
-    	JSONObject errorJson = new JSONObject();
-    	JSONParser jp = new JSONParser();
-    	try {
-			Object parsedError = jp.parse(contents);
-			if (parsedError instanceof JSONObject) {
-				LOG.debug("Got back some JSON. Parsing for dissection.");
-				errorJson = (JSONObject)parsedError;
-			}
-		} catch (ParseException e) {
-			LOG.warn("Got some non-JSON error.", e);
-			bldr.append(" Contents:").append(contents);
-			return bldr.toString();
-		}
-    	
-    	bldr.append("; Message: ").append(errorJson.get("message"));
-    	bldr.append("; Detailed error: ").append(errorJson.get("detailed_error"));
-    	bldr.append("; Request ID: ").append(errorJson.get("request_id"));
-    	bldr.append("; Status code: ").append(errorJson.get("status_code"));
-    	bldr.append("; Is OAUTH?: ").append(errorJson.get("is_oauth"));
-    	return bldr.toString();
+    protected String formatWebhookErrorResponse(int statusCode, String contents) {
+        StringBuilder bldr = new StringBuilder("Response code: ");
+        bldr.append(statusCode);
+
+        JSONObject errorJson = new JSONObject();
+        JSONParser jp = new JSONParser();
+        try {
+            Object parsedError = jp.parse(contents);
+            if (parsedError instanceof JSONObject) {
+                LOG.debug("Got back some JSON. Parsing for dissection.");
+                errorJson = (JSONObject) parsedError;
+            }
+        } catch (ParseException e) {
+            LOG.warn("Got some non-JSON error.", e);
+            bldr.append(" Contents:").append(contents);
+            return bldr.toString();
+        }
+
+        bldr.append("; Message: ").append(errorJson.get("message"));
+        bldr.append("; Detailed error: ").append(errorJson.get("detailed_error"));
+        bldr.append("; Request ID: ").append(errorJson.get("request_id"));
+        bldr.append("; Status code: ").append(errorJson.get("status_code"));
+        bldr.append("; Is OAUTH?: ").append(errorJson.get("is_oauth"));
+        return bldr.toString();
     }
 
     @Override
-	protected String decorateMessageSubject(String subject) {
-    	if ("".equals(subject)) {
-    		return "";
-    	}
-    	final StringBuilder bldr = new StringBuilder("**");
-    	bldr.append(subject).append("**").append("\n");
-    	return bldr.toString();
-    }
-    
-    @Override
-	protected String decorateMessageBody(String body) {
-    	return body;
-    }
-    
-    @Override
-	protected String getUrlPropertyName() {
-    	return MM_URL_PROPERTY;
+    protected String decorateMessageSubject(String subject) {
+        StringBuilder bldr = new StringBuilder("#### ");
+        bldr.append(subject).append("\n");
+        return bldr.toString();
     }
 
     @Override
-    protected String getUseSystemProxyPropertyName() {
-        return MM_USE_SYSTEM_PROXY;
+    protected String decorateMessageBody(String body) {
+        return body;
     }
 
     @Override
-	protected String getUsernamePropertyName() {
-    	return MM_USERNAME_PROPERTY;
+    protected String getUrlPropertyName() {
+        return MM_URL_PROPERTY;
     }
-    
+
     @Override
-	protected String getIconUrlPropertyName() {
-    	return MM_ICONURL_PROPERTY;
+    protected String getUsernamePropertyName() {
+        return MM_USERNAME_PROPERTY;
     }
-    
+
     @Override
-	protected String getIconEmojiPropertyName() {
-    	LOG.warn("Icon emoji may not work with all versions of Mattermost.");
-    	return MM_ICONEMOJI_PROPERTY;
+    protected String getIconUrlPropertyName() {
+        return MM_ICONURL_PROPERTY;
     }
-    
+
     @Override
-	protected String getChannelPropertyName() {
-    	return MM_CHANNEL_PROPERTY;
+    protected String getIconEmojiPropertyName() {
+        LOG.warn("Icon emoji may not work with all versions of Mattermost.");
+        return MM_ICONEMOJI_PROPERTY;
+    }
+
+    @Override
+    protected String getChannelPropertyName() {
+        return MM_CHANNEL_PROPERTY;
     }
 }
