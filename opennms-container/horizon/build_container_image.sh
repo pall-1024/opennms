@@ -6,20 +6,30 @@ set -o errexit
 # Use the error status of the first failure, rather than that of the last item in a pipeline.
 set -o pipefail
 
-# shellcheck source=registry-config.sh
+MYDIR="$(dirname "$0")"
+cd "$MYDIR"
+
+# shellcheck source=registry-config.sh disable=SC1091
 source ../registry-config.sh
 
-# shellcheck source=opennms-container/version-n-tags.sh
+# shellcheck source=opennms-container/version-n-tags.sh disable=SC1091
 source ../version-tags.sh
 
-# OpenNMS Horizon packages
-ONMS_PACKAGES="opennms-core opennms-webapp-jetty"
+RPMDIR="$(cd ../../target/rpm/RPMS/noarch; pwd -P)"
+IPADDR="$(../yum-server/get_ip.sh)"
 
-for PKG in ${ONMS_PACKAGES}; do
-  cp ../../target/rpm/RPMS/noarch/"${PKG}"*.rpm rpms
-done
+cat <<END >rpms/opennms-docker.repo
+[opennms-repo-docker-common]
+name=Local RPMs to Install from Docker
+baseurl=http://${IPADDR}:19990/
+enabled=1
+gpgcheck=0
+END
+
+../yum-server/launch_yum_server.sh "$RPMDIR"
 
 docker build -t horizon \
+  --network bridge \
   --build-arg BUILD_DATE="$(date -u +\"%Y-%m-%dT%H:%M:%S%z\")" \
   --build-arg VERSION="${VERSION}" \
   --build-arg SOURCE="${CIRCLE_REPOSITORY_URL}" \
@@ -35,3 +45,7 @@ if [ -n "${CIRCLE_BUILD_NUM}" ]; then
 fi
 
 docker image save horizon -o images/container.oci
+
+rm -f rpms/*.repo
+
+../yum-server/stop_yum_server.sh
