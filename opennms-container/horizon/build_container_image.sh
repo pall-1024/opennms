@@ -16,7 +16,7 @@ source ../registry-config.sh
 source ../version-tags.sh
 
 RPMDIR="$(cd ../../target/rpm/RPMS/noarch; pwd -P)"
-IPADDR="$(../yum-server/get_ip.sh)"
+IPADDR="$(../get_ip.sh)"
 
 cat <<END >rpms/opennms-docker.repo
 [opennms-repo-docker-common]
@@ -26,7 +26,7 @@ enabled=1
 gpgcheck=0
 END
 
-../yum-server/launch_yum_server.sh "$RPMDIR"
+../launch_yum_server.sh "$RPMDIR"
 
 docker build -t horizon \
   --network bridge \
@@ -48,4 +48,4 @@ docker image save horizon -o images/container.oci
 
 rm -f rpms/*.repo
 
-../yum-server/stop_yum_server.sh
+../stop_yum_server.sh

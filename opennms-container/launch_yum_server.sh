@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 
-set -e
+# Exit script if a statement returns a non-true return value.
+set -o errexit
+
+# Use the error status of the first failure, rather than that of the last item in a pipeline.
+set -o pipefail
+
 
 RPMDIR="$1"; shift || :
 PORT="$1"; shift || :
+CONTAINER_NAME="yum-repo"
+OCI="opennms/yum-repo:1.0.0-b4609"
 
 if [ -z "$RPMDIR" ]; then
   echo "usage: $0 <rpmdir> [port]"
@@ -23,16 +30,13 @@ cd "$MYDIR"
 
 MYIP="$(./get_ip.sh)"
 
-./build_yum_server.sh
-./stop_yum_server.sh
-
-docker run --detach --name yum-server --volume "${RPMDIR}:/repo" --network bridge --publish "${PORT}:${PORT}" opennms-yum-server
+docker run --rm --detach --name "${CONTAINER_NAME}" --volume "${RPMDIR}:/repo" --network bridge --publish "${PORT}:${PORT}" "${OCI}"
 
 echo "waiting for server to be available..."
 COUNT=0
 while [ "$COUNT" -lt 30 ]; do
   COUNT="$((COUNT+1))"
-  if curl --silent "http://${MYIP}:${PORT}/repodata/repomd.xml" >/dev/null 2>&1; then
+  if curl --fail --silent "http://${MYIP}:${PORT}/repodata/repomd.xml" >/dev/null 2>&1; then
     echo "ready"
     break
   fi
@@ -43,6 +47,6 @@ if [ "$COUNT" -eq 30 ]; then
   echo "gave up waiting for server"
   echo "docker logs:"
   echo ""
-  docker logs yum-server
+  docker logs "${CONTAINER_NAME}"
   exit 1
 fi
