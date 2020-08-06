@@ -66,8 +66,6 @@ import org.opennms.netmgt.events.api.EventForwarder;
 import org.opennms.netmgt.events.api.annotations.EventHandler;
 import org.opennms.netmgt.events.api.annotations.EventListener;
 import org.opennms.netmgt.events.api.model.IEvent;
-import org.opennms.netmgt.events.api.model.IParm;
-import org.opennms.netmgt.events.api.model.IValue;
 import org.opennms.netmgt.model.OnmsLocationSpecificStatus;
 import org.opennms.netmgt.model.OnmsMonitoredService;
 import org.opennms.netmgt.model.ResourcePath;
@@ -497,16 +495,5 @@ public class RemotePollerd implements SpringServiceDaemon {
     @EventHandler(uei = EventConstants.RELOAD_DAEMON_CONFIG_UEI)
     public void reloadDaemonConfig(final IEvent e) {
         DaemonTools.handleReloadEvent(e, RemotePollerd.NAME, (event) -> handleConfigurationChanged());
-    }
-
-    @EventHandler(uei = EventConstants.POLLER_PACKAGE_LOCATION_ASSOCIATION_CHANGED_EVENT_UEI)
-    public void reloadDaemonConfigForLocation(final IEvent e) {
-        final IParm parm = e.getParm(EventConstants.PARM_LOCATION);
-        if (parm != null ) {
-            final IValue value = parm.getValue();
-            if (value != null) {
-                handleConfigurationChangedForLocation(value.getContent());
-            }
-        }
     }
 }
