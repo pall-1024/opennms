@@ -28,6 +28,10 @@
 
 package org.opennms.web.svclayer.support;
 
+import static org.opennms.netmgt.events.api.EventConstants.APPLICATION_DELETED_EVENT_UEI;
+import static org.opennms.netmgt.events.api.EventConstants.PARM_APPLICATION_ID;
+import static org.opennms.netmgt.events.api.EventConstants.PARM_APPLICATION_NAME;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,11 +40,13 @@ import java.util.List;
 import org.opennms.core.utils.WebSecurityUtils;
 import org.opennms.netmgt.dao.api.ApplicationDao;
 import org.opennms.netmgt.dao.api.MonitoredServiceDao;
+import org.opennms.netmgt.events.api.EventConstants;
+import org.opennms.netmgt.events.api.EventProxy;
+import org.opennms.netmgt.events.api.EventProxyException;
 import org.opennms.netmgt.model.OnmsApplication;
 import org.opennms.netmgt.model.OnmsMonitoredService;
-import org.opennms.netmgt.model.events.EventUtils;
+import org.opennms.netmgt.model.events.EventBuilder;
 import org.opennms.netmgt.xml.event.Event;
-import org.opennms.web.api.Util;
 import org.opennms.web.svclayer.AdminApplicationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +65,7 @@ public class DefaultAdminApplicationService implements
 
     private ApplicationDao m_applicationDao;
     private MonitoredServiceDao m_monitoredServiceDao;
+    private EventProxy m_eventProxy;
 
     /** {@inheritDoc} */
     @Override
@@ -140,6 +147,14 @@ public class DefaultAdminApplicationService implements
         m_monitoredServiceDao = monitoredServiceDao;
     }
 
+    public EventProxy getEventProxy() {
+        return m_eventProxy;
+    }
+
+    public void setEventProxy(EventProxy eventProxy) {
+        this.m_eventProxy = eventProxy;
+    }
+
     /**
      * <p>performEdit</p>
      *
@@ -161,7 +176,7 @@ public class DefaultAdminApplicationService implements
         OnmsApplication application = findApplication(applicationIdString); 
        
         if (editAction.contains("Add")) { // @i18n
-            if (toAdd == null) {
+            if (toAdd == null || toAdd.length == 0) {
                 return;
                 //throw new IllegalArgumentException("toAdd cannot be null if editAction is 'Add'");
             }
@@ -191,9 +206,10 @@ public class DefaultAdminApplicationService implements
                 
                 service.addApplication(application);
                 m_monitoredServiceDao.save(service);
+                sentEvent(application, EventConstants.APPLICATION_CHANGED_EVENT_UEI);
             }
        } else if (editAction.contains("Remove")) { // @i18n
-            if (toDelete == null) {
+            if (toDelete == null || toDelete.length == 0) {
                 return;
                 //throw new IllegalArgumentException("toDelete cannot be null if editAction is 'Remove'");
             }
@@ -226,11 +242,24 @@ public class DefaultAdminApplicationService implements
             }
 
             m_applicationDao.save(application);
+            sentEvent(application, EventConstants.APPLICATION_CHANGED_EVENT_UEI);
        } else {
            throw new IllegalArgumentException("editAction of '"
                                               + editAction
                                               + "' is not allowed");
        }
+    }
+
+    private void sentEvent(final OnmsApplication application, final String uei) {
+        final Event event = new EventBuilder(uei, "Web UI")
+                .addParam(PARM_APPLICATION_ID, application.getId())
+                .addParam(PARM_APPLICATION_NAME, application.getName())
+                .getEvent();
+        try {
+            m_eventProxy.send(event);
+        } catch (final EventProxyException e) {
+            LOG.warn("Failed to send event {}: {}", event.getUei(), e.getMessage(), e);
+        }
     }
 
     /** {@inheritDoc} */
@@ -239,6 +268,7 @@ public class DefaultAdminApplicationService implements
         OnmsApplication application = new OnmsApplication();
         application.setName(name);
         m_applicationDao.save(application);
+        sentEvent(application, EventConstants.APPLICATION_CREATED_EVENT_UEI);
         return application;
     }
 
@@ -262,12 +292,7 @@ public class DefaultAdminApplicationService implements
     public void removeApplication(String applicationIdString) {
         OnmsApplication application = findApplication(applicationIdString);
         m_applicationDao.delete(application);
-        final Event event = EventUtils.createApplicationDeletedEvent("Web UI", application.getId(), application.getName());
-        try {
-            Util.createEventProxy().send(event);
-        } catch (final Throwable e) {
-            LOG.error("Can't send event " + event, e);
-        }
+        sentEvent(application, APPLICATION_DELETED_EVENT_UEI);
     }
 
     /** {@inheritDoc} */
